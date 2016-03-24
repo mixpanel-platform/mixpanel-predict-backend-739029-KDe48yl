@@ -5,11 +5,127 @@
     <link rel="stylesheet" type="text/css" href="https://cdn.mxpnl.com/libs/mixpanel-platform/css/reset.css">
     <link rel="stylesheet" type="text/css" href="https://cdn.mxpnl.com/libs/mixpanel-platform/build/mixpanel-platform.v0.latest.min.css">
     <script src="https://cdn.mxpnl.com/libs/mixpanel-platform/build/mixpanel-platform.v0.latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+
   </head>
   <body class="mixpanel-platform-body">
-    <h1>Hello, World!</h1>
     <script>
-      // Run queries and display results here
-    </script>
+    median = function( numArr ) {
+      numArr = numArr.filter(Number);
+      numArr.sort( function(a,b) {return a - b;} );
+      var half = Math.floor(numArr.length/2);
+      if(numArr.length % 2)
+        return numArr[half];
+      else
+        return (numArr[half-1] + numArr[half]) / 2.0;
+      }
+    
+    function runQueries() {
+        $('#path svg').hide()
+        
+        structureChartData = function ( results ) {
+        var A = [];
+        var B = [];
+        var C = [];
+        var D = [];
+          
+        _.map(results, function(obj) {
+          A.push(obj.A);
+          B.push(obj.B);
+          C.push(obj.C);
+          D.push(obj.D);
+          });
+        
+        return {A: Math.round( 10*median(A) )/10 || -1,
+                B: Math.round( 10*median(B) )/10 || -1,
+                C: Math.round( 10*median(C) )/10 || -1,
+                D: Math.round( 10*median(D) )/10 || -1,
+                };
+        }  
+        
+        // grab the Custom Query script as a string
+        var baseline = $('#baseline').html();
+        baseline = $.trim(baseline);
+        
+        var baselineResults
+        MP.api.custom_query(baseline).done(function(results) {
+          baselineResults = structureChartData(results)
+        });
+
+        var experiment = $('#experiment').html();
+        experiment = $.trim(experiment);
+
+        var experimentResults
+        MP.api.custom_query(experiment).done(function(results) {
+          experimentResults = structureChartData(results)
+            // now that we have all the results, make the table
+            $('<div></div>').appendTo('body').MPTable({
+              data: {Baseline: baselineResults,
+                    Experiment: experimentResults,
+                  }
+              });
+        });
+    }
+    
+    $(document).ready(function() {
+      runQueries()
+    });
+    
+  </script>
+    
+  <script type="text/cq" id="baseline">
+  getLift = function ( event, letter ) {
+      return event.properties["lift-".concat(letter)];
+    },
+  getLifts = function (item) {
+      return {A: getLift(item, "A"),
+              B: getLift(item, "B"),
+              C: getLift(item, "C"),
+              D: getLift(item, "D"),
+      };
+    };
+
+  function main() {
+      return Events({
+        to_date: new Date().toISOString().split("T")[0],
+        from_date: "2016-03-22", // new Date().toISOString().split("T")[0],
+    })
+    .filter(function(e) {
+      return e.name == "Baseline performance" && e.properties["num-users-log10"] == 3;
+    })
+    .map(function(event) {
+      return getLifts(event);
+    })
+  }
+  </script>
+
+  <script type="text/cq" id="experiment">
+  getLift = function ( event, letter ) {
+      return event.properties["lift-".concat(letter)];
+    },
+  getLifts = function (item) {
+      return {A: getLift(item, "A"),
+              B: getLift(item, "B"),
+              C: getLift(item, "C"),
+              D: getLift(item, "D"),
+      };
+    };
+
+  function main() {
+      return Events({
+        to_date: new Date().toISOString().split("T")[0],
+        from_date: "2016-03-22", // new Date().toISOString().split("T")[0],
+    })
+    .filter(function(e) {
+      return e.name == "Experiment performance" && e.properties["num-users-log10"] == 3;
+    })
+    .map(function(event) {
+      return getLifts(event);
+    })
+  }
+  </script>
+
+
+
   </body>
 </html>
