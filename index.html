@@ -114,7 +114,7 @@
   function main() {
       return Events({
         to_date: new Date().toISOString().split("T")[0],
-        from_date: "2016-03-22", // new Date().toISOString().split("T")[0],
+        from_date: "2016-04-07", // new Date().toISOString().split("T")[0],
     })
     .filter(function(e) {
       return e.name == "Experiment performance" && e.properties["num-users-log10"] == 3;
